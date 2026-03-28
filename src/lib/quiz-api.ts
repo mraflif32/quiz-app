@@ -1,7 +1,12 @@
 import type {
+  Attempt,
+  AttemptEventBody,
+  AttemptResult,
   CreateQuestionBody,
+  CreateAttemptBody,
   CreateQuizBody,
   FetchQuizResponseBody,
+  SaveAttemptAnswerBody,
   UpdateQuestionBody,
   UpdateQuizBody,
 } from "@/types/api";
@@ -96,5 +101,40 @@ export function updateQuestion(questionId: number, values: UpdateQuestionBody) {
   return request<Question>(`/questions/${questionId}`, {
     method: "PATCH",
     body: values,
+  });
+}
+
+export function createAttempt(quizId: number) {
+  return request<Attempt>("/attempts", {
+    method: "POST",
+    body: {
+      quizId,
+    } as CreateAttemptBody,
+  });
+}
+
+export function saveAttemptAnswer(
+  attemptId: number,
+  values: SaveAttemptAnswerBody,
+) {
+  return request<void>(`/attempts/${attemptId}/answer`, {
+    method: "POST",
+    body: values,
+  });
+}
+
+export function recordAttemptEvent(
+  attemptId: number,
+  values: AttemptEventBody,
+) {
+  return request<void>(`/attempts/${attemptId}/events`, {
+    method: "POST",
+    body: values,
+  });
+}
+
+export function submitAttempt(attemptId: number) {
+  return request<AttemptResult>(`/attempts/${attemptId}/submit`, {
+    method: "POST",
   });
 }

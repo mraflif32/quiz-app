@@ -40,7 +40,12 @@ import {
   updateQuestion,
   updateQuiz,
 } from "@/lib/quiz-api";
-import { getErrorMessage, normalizeShortAnswer } from "@/lib/quiz-utils";
+import {
+  decodeQuestionPrompt,
+  encodeQuestionPrompt,
+  getErrorMessage,
+  normalizeShortAnswer,
+} from "@/lib/quiz-utils";
 import type { Question, QuestionType } from "@/types/quiz";
 import type {
   CreateQuestionBody,
@@ -66,6 +71,7 @@ const questionSchema = z
   .object({
     type: z.enum(["mcq", "short"]),
     prompt: z.string().trim().min(1, "Add a question prompt."),
+    codeSnippet: z.string(),
     position: z.coerce
       .number()
       .int("Use a whole number.")
@@ -131,6 +137,7 @@ function getQuestionDefaults(position: number): QuestionFormValues {
   return {
     type: "mcq",
     prompt: "",
+    codeSnippet: "",
     position,
     options: [
       { value: getOptionDefaultValue(0) },
@@ -142,10 +149,13 @@ function getQuestionDefaults(position: number): QuestionFormValues {
 }
 
 function mapQuestionToFormValues(question: Question): QuestionFormValues {
+  const { prompt, codeSnippet } = decodeQuestionPrompt(question.prompt);
+
   if (question.type === "short") {
     return {
       type: "short",
-      prompt: question.prompt,
+      prompt,
+      codeSnippet,
       position: question.position,
       options: [{ value: "" }, { value: "" }],
       correctOptionIndex: null,
@@ -155,7 +165,8 @@ function mapQuestionToFormValues(question: Question): QuestionFormValues {
 
   return {
     type: "mcq",
-    prompt: question.prompt,
+    prompt,
+    codeSnippet,
     position: question.position,
     options: question.options.length
       ? question.options.map((option) => ({ value: option }))
@@ -172,7 +183,7 @@ function buildQuestionPayload(
   quizId: number,
   values: QuestionFormValues,
 ): CreateQuestionBody {
-  const prompt = values.prompt.trim();
+  const prompt = encodeQuestionPrompt(values.prompt, values.codeSnippet);
 
   if (values.type === "short") {
     return {
@@ -203,7 +214,7 @@ function buildQuestionPayload(
 function buildQuestionUpdatePayload(
   values: QuestionFormValues,
 ): UpdateQuestionBody {
-  const prompt = values.prompt.trim();
+  const prompt = encodeQuestionPrompt(values.prompt, values.codeSnippet);
 
   if (values.type === "short") {
     return {
@@ -725,6 +736,9 @@ function QuizBuilderPage() {
                 ) : (
                   orderedQuestions.map((question) => {
                     const isActive = question.id === activeQuestionId;
+                    const decodedQuestion = decodeQuestionPrompt(
+                      question.prompt,
+                    );
 
                     return (
                       <button
@@ -744,7 +758,7 @@ function QuizBuilderPage() {
                               Position {question.position}
                             </p>
                             <p className="mt-2 text-sm font-semibold text-white">
-                              {question.prompt}
+                              {decodedQuestion.prompt || "Untitled question"}
                             </p>
                           </div>
                           <Badge
@@ -872,6 +886,33 @@ function QuizBuilderPage() {
                       {questionForm.formState.errors.prompt.message}
                     </p>
                   ) : null}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="question-code-snippet">
+                    Code snippet
+                  </Label>
+                  <Controller
+                    control={questionForm.control}
+                    name="codeSnippet"
+                    render={({ field }) => (
+                      <Textarea
+                        id="question-code-snippet"
+                        className="min-h-36 rounded-2xl bg-slate-50 font-mono text-sm"
+                        placeholder="Optional: add a code snippet shown with this question"
+                        value={field.value}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
+                      />
+                    )}
+                  />
+                  <p className="text-xs text-slate-500">
+                    Optional. The builder stores this separately from the
+                    visible question prompt using tagged content inside the
+                    backend prompt field.
+                  </p>
                 </div>
 
                 <div className="space-y-2">
