@@ -75,17 +75,6 @@ function BuilderEntryPage() {
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-slate-300 to-transparent" />
 
         <div className="mb-8 space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge className="rounded-full bg-sky-600 px-3 text-[0.65rem] font-semibold text-white hover:bg-sky-500">
-              Builder workspace
-            </Badge>
-            <Badge
-              variant="outline"
-              className="rounded-full border-slate-300/80 bg-white/70 px-3 text-[0.65rem] text-slate-600"
-            >
-              Backend-powered editing
-            </Badge>
-          </div>
           <h1 className="max-w-3xl font-heading text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl">
             Start a new quiz or jump back into one by ID.
           </h1>
@@ -166,7 +155,10 @@ function BuilderEntryPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="px-6 pb-6">
-              <form className="space-y-4" onSubmit={handleSubmit(handleOpenQuiz)}>
+              <form
+                className="space-y-4"
+                onSubmit={handleSubmit(handleOpenQuiz)}
+              >
                 <div className="space-y-2">
                   <Label htmlFor="builder-quiz-id" className="text-slate-100">
                     Quiz ID

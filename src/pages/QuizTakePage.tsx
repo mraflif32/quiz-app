@@ -37,11 +37,7 @@ import {
   saveAttemptAnswer,
   submitAttempt,
 } from "@/lib/quiz-api";
-import {
-  decodeQuestionPrompt,
-  getErrorMessage,
-  normalizeShortAnswer,
-} from "@/lib/quiz-utils";
+import { decodeQuestionPrompt, getErrorMessage } from "@/lib/quiz-utils";
 import type { Attempt, AttemptResult } from "@/types/api";
 import type { Question } from "@/types/quiz";
 
@@ -86,9 +82,12 @@ function QuizTakePage() {
   const [result, setResult] = useState<AttemptResult | null>(null);
   const [isResultOpen, setIsResultOpen] = useState(false);
   const [nowUtcMs, setNowUtcMs] = useState(() => dayjs.utc().valueOf());
+  const [isTimeoutSubmitRetrying, setIsTimeoutSubmitRetrying] = useState(false);
+  const [retryCountdownSeconds, setRetryCountdownSeconds] = useState(5);
   const startedAttemptQuizIdRef = useRef<number | null>(null);
   const autoSubmitTriggeredRef = useRef(false);
   const lastBlurEventAtRef = useRef(0);
+  const lastSubmitOriginRef = useRef<"manual" | "timeout" | null>(null);
   const hasCurrentAttempt = attempt?.quizId === parsedQuizId;
 
   const orderedQuestions = useMemo(
@@ -131,11 +130,20 @@ function QuizTakePage() {
     deadlineUtc !== null
       ? Math.max(0, Math.ceil(deadlineUtc.diff(nowUtc) / 1000))
       : null;
+  const totalPasteEvents = Object.values(activityCounts).reduce(
+    (total, counts) => total + counts.pasteCount,
+    0,
+  );
+  const totalBlurEvents = Object.values(activityCounts).reduce(
+    (total, counts) => total + counts.blurCount,
+    0,
+  );
 
   useEffect(() => {
     startedAttemptQuizIdRef.current = null;
     autoSubmitTriggeredRef.current = false;
     lastBlurEventAtRef.current = 0;
+    lastSubmitOriginRef.current = null;
   }, [parsedQuizId]);
 
   const startAttemptMutation = useMutation({
@@ -146,6 +154,8 @@ function QuizTakePage() {
       setActivityCounts({});
       setResult(null);
       setIsResultOpen(false);
+      setIsTimeoutSubmitRetrying(false);
+      setRetryCountdownSeconds(5);
       setNowUtcMs(dayjs.utc().valueOf());
       setActiveQuestionId(
         [...nextAttempt.quiz.questions].sort(
@@ -228,14 +238,26 @@ function QuizTakePage() {
             }
           : currentAttempt,
       );
+      setIsTimeoutSubmitRetrying(false);
+      setRetryCountdownSeconds(5);
       setResult(attemptResult);
       setIsResultOpen(true);
       toast.success("Quiz submitted");
     },
+    onError: () => {
+      if (lastSubmitOriginRef.current === "timeout") {
+        setIsTimeoutSubmitRetrying(true);
+        setRetryCountdownSeconds(5);
+      }
+    },
   });
 
   const isSubmitted = Boolean(attempt?.submittedAt);
-  const isReadOnly = isSubmitted || submitMutation.isPending;
+  const isReadOnly =
+    isSubmitted ||
+    saveAnswerMutation.isPending ||
+    submitMutation.isPending ||
+    isTimeoutSubmitRetrying;
 
   useEffect(() => {
     if (!hasValidQuizId) {
@@ -277,8 +299,36 @@ function QuizTakePage() {
     }
 
     autoSubmitTriggeredRef.current = true;
+    lastSubmitOriginRef.current = "timeout";
     submitMutation.mutate();
   }, [attempt, deadlineMs, isReadOnly, submitMutation, timeLeftSeconds]);
+
+  useEffect(() => {
+    if (!isTimeoutSubmitRetrying || isSubmitted) {
+      return;
+    }
+
+    if (retryCountdownSeconds > 0) {
+      const countdownTimeout = window.setTimeout(() => {
+        setRetryCountdownSeconds((currentSeconds) => currentSeconds - 1);
+      }, 1000);
+
+      return () => window.clearTimeout(countdownTimeout);
+    }
+
+    const retryTimeout = window.setTimeout(() => {
+      lastSubmitOriginRef.current = "timeout";
+      submitMutation.mutate();
+      setRetryCountdownSeconds(5);
+    }, 0);
+
+    return () => window.clearTimeout(retryTimeout);
+  }, [
+    isSubmitted,
+    isTimeoutSubmitRetrying,
+    retryCountdownSeconds,
+    submitMutation,
+  ]);
 
   useEffect(() => {
     if (!attempt || isReadOnly || activeQuestionId === null) {
@@ -462,10 +512,11 @@ function QuizTakePage() {
 
   const activeAnswer =
     currentQuestion !== null ? (draftAnswers[currentQuestion.id] ?? "") : "";
-  const activeCounts =
-    currentQuestion !== null
-      ? (activityCounts[currentQuestion.id] ?? { pasteCount: 0, blurCount: 0 })
-      : { pasteCount: 0, blurCount: 0 };
+
+  function handleManualSubmit() {
+    lastSubmitOriginRef.current = "manual";
+    submitMutation.mutate();
+  }
 
   return (
     <>
@@ -521,22 +572,29 @@ function QuizTakePage() {
                 </CardContent>
               </Card>
 
-              <Button
-                type="button"
-                size="lg"
-                disabled={isReadOnly}
-                onClick={() => submitMutation.mutate()}
-                className="h-12 rounded-full bg-slate-950 px-5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
-              >
-                {submitMutation.isPending ? (
-                  <>
-                    <LoaderCircle className="size-4 animate-spin" />
-                    Finishing...
-                  </>
-                ) : (
-                  "Submit quiz"
-                )}
-              </Button>
+              <div className="space-y-2">
+                <Button
+                  type="button"
+                  size="lg"
+                  disabled={isReadOnly}
+                  onClick={handleManualSubmit}
+                  className="h-12 rounded-full bg-slate-950 px-5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
+                >
+                  {submitMutation.isPending ? (
+                    <>
+                      <LoaderCircle className="size-4 animate-spin" />
+                      Finishing...
+                    </>
+                  ) : (
+                    "Submit quiz"
+                  )}
+                </Button>
+                {isTimeoutSubmitRetrying ? (
+                  <p className="text-xs font-medium text-amber-700 sm:self-center">
+                    Retrying in {retryCountdownSeconds}s
+                  </p>
+                ) : null}
+              </div>
             </div>
           </div>
         </section>
@@ -545,7 +603,7 @@ function QuizTakePage() {
           <Card className="rounded-[2rem] border border-slate-200/80 bg-slate-950 py-0 text-slate-50 shadow-[0_16px_55px_-42px_rgba(15,23,42,0.6)]">
             <CardHeader className="px-6 pt-6">
               <CardTitle className="text-2xl font-semibold text-white">
-                Questions
+                Question List
               </CardTitle>
               <CardDescription className="text-sm leading-6 text-slate-300">
                 Move through the quiz and save each answer as you go.
@@ -553,7 +611,7 @@ function QuizTakePage() {
             </CardHeader>
             <CardContent className="px-6 pb-6">
               <div className="space-y-3">
-                {orderedQuestions.map((question, index) => {
+                {orderedQuestions.map((question) => {
                   const isActive = question.id === currentQuestion?.id;
                   const savedAnswer = attempt.answers.find(
                     (answer) => answer.questionId === question.id,
@@ -563,22 +621,24 @@ function QuizTakePage() {
                     <button
                       key={question.id}
                       type="button"
+                      disabled={isReadOnly}
                       onClick={() => setActiveQuestionId(question.id)}
                       className={[
                         "w-full rounded-2xl border px-4 py-4 text-left transition-colors",
                         isActive
                           ? "border-amber-300 bg-amber-300/10"
                           : "border-white/10 bg-white/5 hover:bg-white/8",
+                        isReadOnly ? "cursor-not-allowed opacity-75" : "",
                       ].join(" ")}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-                            Position {question.position}
+                            Question {question.position}
                           </p>
-                          <p className="mt-2 text-sm font-semibold text-white">
+                          {/* <p className="mt-2 text-sm font-semibold text-white">
                             {getQuestionLabel(question, index)}
-                          </p>
+                          </p> */}
                         </div>
                         <div className="flex flex-col items-end gap-2">
                           <Badge
@@ -605,13 +665,16 @@ function QuizTakePage() {
             <CardHeader className="px-6 pt-6">
               <CardTitle className="text-2xl font-semibold text-slate-950">
                 {currentQuestion
+                  ? `Question ${currentQuestion.position}`
+                  : "No question selected"}
+                {/* {currentQuestion
                   ? getQuestionLabel(
                       currentQuestion,
                       orderedQuestions.findIndex(
                         (question) => question.id === currentQuestion.id,
                       ),
                     )
-                  : "No question selected"}
+                  : "No question selected"} */}
               </CardTitle>
               <CardDescription className="text-sm leading-6 text-slate-600">
                 Review the prompt, answer carefully, and save when you are
@@ -622,7 +685,7 @@ function QuizTakePage() {
               {currentQuestion ? (
                 <>
                   <div className="space-y-3">
-                    <div className="flex flex-wrap items-center gap-2">
+                    {/* <div className="flex flex-wrap items-center gap-2">
                       <Badge className="rounded-full bg-sky-600 px-3 text-[0.65rem] font-semibold text-white hover:bg-sky-500">
                         Question{" "}
                         {orderedQuestions.findIndex(
@@ -635,7 +698,7 @@ function QuizTakePage() {
                       >
                         Position {currentQuestion.position}
                       </Badge>
-                    </div>
+                    </div> */}
 
                     <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50/80 p-5">
                       <p className="text-base leading-7 text-slate-900">
@@ -710,7 +773,7 @@ function QuizTakePage() {
                         className="min-h-36 rounded-2xl bg-slate-50"
                         placeholder="Type your answer here"
                       />
-                      <div className="flex flex-wrap gap-3 text-xs text-slate-500">
+                      {/* <div className="flex flex-wrap gap-3 text-xs text-slate-500">
                         <span>Pastes: {activeCounts.pasteCount}</span>
                         <span>Tab changes: {activeCounts.blurCount}</span>
                         <span>
@@ -719,7 +782,7 @@ function QuizTakePage() {
                             ? normalizeShortAnswer(activeAnswer)
                             : "None yet"}
                         </span>
-                      </div>
+                      </div> */}
                     </div>
                   )}
 
@@ -789,10 +852,15 @@ function QuizTakePage() {
                 >
                   <AlertTitle>Quiz was not submitted</AlertTitle>
                   <AlertDescription>
-                    {getErrorMessage(
-                      submitMutation.error,
-                      "Please try submitting again.",
-                    )}
+                    {isTimeoutSubmitRetrying
+                      ? `${getErrorMessage(
+                          submitMutation.error,
+                          "Retrying submission automatically.",
+                        )} Retrying automatically.`
+                      : getErrorMessage(
+                          submitMutation.error,
+                          "Please try submitting again.",
+                        )}
                   </AlertDescription>
                 </Alert>
               ) : null}
@@ -809,7 +877,7 @@ function QuizTakePage() {
           <div className="page-gradient absolute inset-0 opacity-70" />
           <div className="relative space-y-6 px-6 py-6 sm:px-8 sm:py-8">
             <DialogHeader>
-              <div className="flex flex-wrap items-center gap-2">
+              {/* <div className="flex flex-wrap items-center gap-2">
                 <Badge className="rounded-full bg-emerald-600 px-3 text-[0.65rem] font-semibold text-white hover:bg-emerald-500">
                   Results ready
                 </Badge>
@@ -819,7 +887,7 @@ function QuizTakePage() {
                 >
                   Attempt #{attempt.id}
                 </Badge>
-              </div>
+              </div> */}
               <DialogTitle>Your quiz is finished</DialogTitle>
               <DialogDescription>
                 Review your score and see which questions were marked correct.
@@ -836,6 +904,30 @@ function QuizTakePage() {
               <p className="mt-2 text-sm text-slate-600">
                 Evaluated across {result?.details.length ?? 0} questions.
               </p>
+            </div>
+
+            <div className="rounded-[1.5rem] border border-white/80 bg-white/85 p-5 shadow-sm">
+              <p className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                Anti-cheat events
+              </p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl border border-slate-200 bg-white/70 px-4 py-3">
+                  <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
+                    Paste events
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold text-slate-950">
+                    {totalPasteEvents}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white/70 px-4 py-3">
+                  <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
+                    Tab changes
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold text-slate-950">
+                    {totalBlurEvents}
+                  </p>
+                </div>
+              </div>
             </div>
 
             <div className="space-y-3">

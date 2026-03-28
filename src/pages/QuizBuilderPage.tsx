@@ -543,9 +543,6 @@ function QuizBuilderPage() {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge className="rounded-full bg-sky-600 px-3 text-[0.65rem] font-semibold text-white hover:bg-sky-500">
-                Quiz builder
-              </Badge>
               <Badge
                 variant="outline"
                 className="rounded-full border-slate-300/80 bg-white/70 px-3 text-[0.65rem] text-slate-600"
@@ -554,12 +551,8 @@ function QuizBuilderPage() {
               </Badge>
             </div>
             <h1 className="font-heading text-4xl font-semibold tracking-tight text-slate-950">
-              Shape the quiz and save each question deliberately.
+              Quiz Builder
             </h1>
-            <p className="max-w-3xl text-sm leading-6 text-slate-600 sm:text-base">
-              Keep quiz details current, then draft each question with clear
-              answer rules and an explicit position in the lineup.
-            </p>
           </div>
           <Button
             asChild
@@ -574,19 +567,15 @@ function QuizBuilderPage() {
       <section className="mt-6 space-y-6">
         <Card className="rounded-[2rem] border border-white/80 bg-white/85 py-0 shadow-[0_24px_70px_-40px_rgba(15,23,42,0.45)] backdrop-blur">
           <CardHeader className="px-6 pt-6">
-            <div className="mb-3 flex items-center gap-2 text-sky-700">
+            {/* <div className="mb-3 flex items-center gap-2 text-sky-700">
               <Sparkles className="size-4" />
               <span className="text-[0.7rem] font-semibold uppercase tracking-[0.2em]">
                 Quiz details
               </span>
-            </div>
+            </div> */}
             <CardTitle className="text-2xl font-semibold text-slate-950">
-              Core quiz settings
+              Quiz Details
             </CardTitle>
-            <CardDescription className="text-sm leading-6 text-slate-600">
-              Save these separately from your questions so the quiz shell stays
-              accurate while you keep editing.
-            </CardDescription>
           </CardHeader>
           <CardContent className="px-6 pb-6">
             <form
@@ -689,7 +678,7 @@ function QuizBuilderPage() {
           <Card className="rounded-[2rem] border border-slate-200/80 bg-slate-950 py-0 text-slate-50 shadow-[0_16px_55px_-42px_rgba(15,23,42,0.6)]">
             <CardHeader className="px-6 pt-6">
               <CardTitle className="text-2xl font-semibold text-white">
-                Question order
+                Question List
               </CardTitle>
               <CardDescription className="text-sm leading-6 text-slate-300">
                 Pick a saved question to edit, or start a new one with the next
@@ -713,11 +702,11 @@ function QuizBuilderPage() {
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-200">
-                          Draft position {draftQuestionPreview.position}
+                          Draft question {draftQuestionPreview.position}
                         </p>
-                        <p className="mt-2 text-sm font-semibold text-white">
+                        {/* <p className="mt-2 text-sm font-semibold text-white">
                           {draftQuestionPreview.prompt}
-                        </p>
+                        </p> */}
                       </div>
                       <Badge
                         variant="outline"
@@ -755,11 +744,11 @@ function QuizBuilderPage() {
                         <div className="flex items-start justify-between gap-3">
                           <div>
                             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-                              Position {question.position}
+                              Question {question.position}
                             </p>
-                            <p className="mt-2 text-sm font-semibold text-white">
+                            {/* <p className="mt-2 text-sm font-semibold text-white">
                               {decodedQuestion.prompt || "Untitled question"}
-                            </p>
+                            </p> */}
                           </div>
                           <Badge
                             variant="outline"
@@ -778,12 +767,6 @@ function QuizBuilderPage() {
 
           <Card className="rounded-[2rem] border border-white/80 bg-white/85 py-0 shadow-[0_24px_70px_-40px_rgba(15,23,42,0.45)] backdrop-blur">
             <CardHeader className="px-6 pt-6">
-              <div className="mb-3 flex items-center gap-2 text-sky-700">
-                <FilePlus2 className="size-4" />
-                <span className="text-[0.7rem] font-semibold uppercase tracking-[0.2em]">
-                  Question editor
-                </span>
-              </div>
               <CardTitle className="text-2xl font-semibold text-slate-950">
                 {activeQuestionId
                   ? "Edit saved question"
@@ -890,7 +873,7 @@ function QuizBuilderPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="question-code-snippet">
-                    Code snippet
+                    Code snippet (Optional)
                   </Label>
                   <Controller
                     control={questionForm.control}
@@ -908,11 +891,11 @@ function QuizBuilderPage() {
                       />
                     )}
                   />
-                  <p className="text-xs text-slate-500">
+                  {/* <p className="text-xs text-slate-500">
                     Optional. The builder stores this separately from the
                     visible question prompt using tagged content inside the
                     backend prompt field.
-                  </p>
+                  </p> */}
                 </div>
 
                 <div className="space-y-2">
