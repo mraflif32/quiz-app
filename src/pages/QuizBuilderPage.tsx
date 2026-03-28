@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
+  Controller,
   useFieldArray,
   useForm,
   useWatch,
@@ -419,7 +420,7 @@ function QuizBuilderPage() {
   if (!hasValidQuizId) {
     return (
       <main className="app-shell relative isolate justify-center overflow-hidden py-6 sm:py-10">
-        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[34rem] bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.18),_transparent_36%),radial-gradient(circle_at_top_right,_rgba(251,191,36,0.24),_transparent_28%),linear-gradient(180deg,_rgba(255,255,255,0.96),_rgba(244,247,251,0.84))]" />
+        <div className="page-gradient" />
         <Card className="rounded-[2rem] border border-white/80 bg-white/85 py-0 shadow-[0_24px_70px_-40px_rgba(15,23,42,0.45)] backdrop-blur">
           <CardContent className="px-6 py-8">
             <Alert
@@ -446,7 +447,7 @@ function QuizBuilderPage() {
   if (quizQuery.isLoading) {
     return (
       <main className="app-shell relative isolate justify-center overflow-hidden py-6 sm:py-10">
-        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[34rem] bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.18),_transparent_36%),radial-gradient(circle_at_top_right,_rgba(251,191,36,0.24),_transparent_28%),linear-gradient(180deg,_rgba(255,255,255,0.96),_rgba(244,247,251,0.84))]" />
+        <div className="page-gradient" />
         <div className="grid gap-6">
           <LoadingCard title="Loading quiz details..." />
         </div>
@@ -457,7 +458,7 @@ function QuizBuilderPage() {
   if (quizQuery.isError || !quizQuery.data) {
     return (
       <main className="app-shell relative isolate justify-center overflow-hidden py-6 sm:py-10">
-        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[34rem] bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.18),_transparent_36%),radial-gradient(circle_at_top_right,_rgba(251,191,36,0.24),_transparent_28%),linear-gradient(180deg,_rgba(255,255,255,0.96),_rgba(244,247,251,0.84))]" />
+        <div className="page-gradient" />
         <Card className="rounded-[2rem] border border-white/80 bg-white/85 py-0 shadow-[0_24px_70px_-40px_rgba(15,23,42,0.45)] backdrop-blur">
           <CardContent className="px-6 py-8">
             <Alert
@@ -523,7 +524,7 @@ function QuizBuilderPage() {
 
   return (
     <main className="app-shell relative isolate overflow-hidden py-6 sm:py-10">
-      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[34rem] bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.18),_transparent_36%),radial-gradient(circle_at_top_right,_rgba(251,191,36,0.24),_transparent_28%),linear-gradient(180deg,_rgba(255,255,255,0.96),_rgba(244,247,251,0.84))]" />
+      <div className="page-gradient" />
       <div className="pointer-events-none absolute inset-x-6 top-24 -z-10 h-64 rounded-full bg-sky-200/20 blur-3xl" />
 
       <section className="glass-panel relative overflow-hidden border-white/70 px-6 py-8 shadow-[0_24px_80px_-36px_rgba(15,23,42,0.35)] sm:px-8 sm:py-10">
@@ -845,13 +846,26 @@ function QuizBuilderPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="question-prompt">Question prompt</Label>
-                  <Textarea
-                    id="question-prompt"
-                    className="min-h-28 rounded-2xl bg-slate-50"
-                    aria-invalid={
-                      questionForm.formState.errors.prompt ? "true" : "false"
-                    }
-                    {...questionForm.register("prompt")}
+                  <Controller
+                    control={questionForm.control}
+                    name="prompt"
+                    render={({ field }) => (
+                      <Textarea
+                        id="question-prompt"
+                        className="min-h-28 rounded-2xl bg-slate-50"
+                        aria-invalid={
+                          questionForm.formState.errors.prompt
+                            ? "true"
+                            : "false"
+                        }
+                        value={field.value}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
+                        placeholder="Enter question prompt"
+                      />
+                    )}
                   />
                   {questionForm.formState.errors.prompt ? (
                     <p className="text-xs font-medium text-rose-600">
@@ -862,15 +876,32 @@ function QuizBuilderPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="question-position">Position in quiz</Label>
-                  <Input
-                    id="question-position"
-                    type="number"
-                    min={1}
-                    className="h-11 rounded-2xl bg-slate-50"
-                    aria-invalid={
-                      questionForm.formState.errors.position ? "true" : "false"
-                    }
-                    {...questionForm.register("position")}
+                  <Controller
+                    control={questionForm.control}
+                    name="position"
+                    render={({ field }) => (
+                      <Input
+                        id="question-position"
+                        type="number"
+                        min={1}
+                        className="h-11 rounded-2xl bg-slate-50"
+                        aria-invalid={
+                          questionForm.formState.errors.position
+                            ? "true"
+                            : "false"
+                        }
+                        value={String(field.value ?? "")}
+                        onChange={(event) => {
+                          const nextValue = event.target.value;
+                          field.onChange(
+                            nextValue === "" ? "" : Number(nextValue),
+                          );
+                        }}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
+                      />
+                    )}
                   />
                   {questionForm.formState.errors.position ? (
                     <p className="text-xs font-medium text-rose-600">
@@ -1002,16 +1033,26 @@ function QuizBuilderPage() {
                 ) : (
                   <div className="space-y-2">
                     <Label htmlFor="short-answer">Accepted answer</Label>
-                    <Input
-                      id="short-answer"
-                      className="h-11 rounded-2xl bg-slate-50"
-                      placeholder="Example: annual recurring revenue"
-                      aria-invalid={
-                        questionForm.formState.errors.shortAnswer
-                          ? "true"
-                          : "false"
-                      }
-                      {...questionForm.register("shortAnswer")}
+                    <Controller
+                      control={questionForm.control}
+                      name="shortAnswer"
+                      render={({ field }) => (
+                        <Input
+                          id="short-answer"
+                          className="h-11 rounded-2xl bg-slate-50"
+                          placeholder="Example: annual recurring revenue"
+                          aria-invalid={
+                            questionForm.formState.errors.shortAnswer
+                              ? "true"
+                              : "false"
+                          }
+                          value={field.value}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
+                        />
+                      )}
                     />
                     <p className="text-xs text-slate-500">
                       Case is ignored and repeated whitespace is normalized

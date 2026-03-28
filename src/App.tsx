@@ -75,7 +75,7 @@ function App() {
 
   return (
     <main className="app-shell relative isolate justify-center overflow-hidden py-6 sm:py-10">
-      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[34rem] bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.18),_transparent_36%),radial-gradient(circle_at_top_right,_rgba(251,191,36,0.24),_transparent_28%),linear-gradient(180deg,_rgba(255,255,255,0.96),_rgba(244,247,251,0.84))]" />
+      <div className="page-gradient" />
       <div className="pointer-events-none absolute inset-x-6 top-24 -z-10 h-64 rounded-full bg-sky-200/20 blur-3xl" />
 
       <section className="glass-panel relative overflow-hidden border-white/70 px-6 py-8 shadow-[0_24px_80px_-36px_rgba(15,23,42,0.35)] sm:px-8 sm:py-10 lg:px-10">

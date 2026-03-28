@@ -132,6 +132,26 @@
     @apply mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-8 sm:px-6 lg:px-8;
   }
 
+  .page-gradient {
+    @apply pointer-events-none absolute inset-0 -z-10;
+    background:
+      radial-gradient(
+        circle at top left,
+        rgba(14, 165, 233, 0.18),
+        transparent 36%
+      ),
+      radial-gradient(
+        circle at top right,
+        rgba(251, 191, 36, 0.24),
+        transparent 28%
+      ),
+      linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.96),
+        rgba(244, 247, 251, 0.84)
+      );
+  }
+
   .glass-panel {
     @apply rounded-3xl border bg-white/90 shadow-sm backdrop-blur;
   }
