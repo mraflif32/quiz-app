@@ -6,7 +6,6 @@ import { useNavigate } from "react-router";
 import { z } from "zod";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -167,7 +166,7 @@ function BuilderEntryPage() {
                     id="builder-quiz-id"
                     type="number"
                     min={1}
-                    placeholder="Example: TEAM-QUIZ-204"
+                    placeholder="Example: 3"
                     aria-invalid={errors.quizId ? "true" : "false"}
                     aria-describedby={
                       errors.quizId ? "builder-quiz-id-error" : undefined

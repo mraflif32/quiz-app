@@ -1,13 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  CheckCircle2,
-  Circle,
-  FilePlus2,
-  LoaderCircle,
-  Plus,
-  Sparkles,
-} from "lucide-react";
+import { CheckCircle2, Circle, LoaderCircle, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
   Controller,
@@ -567,12 +560,6 @@ function QuizBuilderPage() {
       <section className="mt-6 space-y-6">
         <Card className="rounded-[2rem] border border-white/80 bg-white/85 py-0 shadow-[0_24px_70px_-40px_rgba(15,23,42,0.45)] backdrop-blur">
           <CardHeader className="px-6 pt-6">
-            {/* <div className="mb-3 flex items-center gap-2 text-sky-700">
-              <Sparkles className="size-4" />
-              <span className="text-[0.7rem] font-semibold uppercase tracking-[0.2em]">
-                Quiz details
-              </span>
-            </div> */}
             <CardTitle className="text-2xl font-semibold text-slate-950">
               Quiz Details
             </CardTitle>
@@ -704,9 +691,9 @@ function QuizBuilderPage() {
                         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-200">
                           Draft question {draftQuestionPreview.position}
                         </p>
-                        {/* <p className="mt-2 text-sm font-semibold text-white">
+                        <p className="mt-2 text-sm font-semibold text-white">
                           {draftQuestionPreview.prompt}
-                        </p> */}
+                        </p>
                       </div>
                       <Badge
                         variant="outline"
@@ -725,9 +712,7 @@ function QuizBuilderPage() {
                 ) : (
                   orderedQuestions.map((question) => {
                     const isActive = question.id === activeQuestionId;
-                    const decodedQuestion = decodeQuestionPrompt(
-                      question.prompt,
-                    );
+                    const { prompt } = decodeQuestionPrompt(question.prompt);
 
                     return (
                       <button
@@ -746,9 +731,9 @@ function QuizBuilderPage() {
                             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
                               Question {question.position}
                             </p>
-                            {/* <p className="mt-2 text-sm font-semibold text-white">
-                              {decodedQuestion.prompt || "Untitled question"}
-                            </p> */}
+                            <p className="mt-2 text-sm font-semibold text-white">
+                              {prompt || "Untitled question"}
+                            </p>
                           </div>
                           <Badge
                             variant="outline"
@@ -891,11 +876,10 @@ function QuizBuilderPage() {
                       />
                     )}
                   />
-                  {/* <p className="text-xs text-slate-500">
-                    Optional. The builder stores this separately from the
-                    visible question prompt using tagged content inside the
-                    backend prompt field.
-                  </p> */}
+                  <p className="text-xs text-slate-500">
+                    Optional. This is shown with the question but stored
+                    separately from the prompt content.
+                  </p>
                 </div>
 
                 <div className="space-y-2">

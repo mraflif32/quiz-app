@@ -6,7 +6,7 @@ import {
   Copy,
   LoaderCircle,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
 import { toast } from "sonner";
 
@@ -41,9 +41,9 @@ import { decodeQuestionPrompt, getErrorMessage } from "@/lib/quiz-utils";
 import type { Attempt, AttemptResult } from "@/types/api";
 import type { Question } from "@/types/quiz";
 
-type ActivityCount = {
-  pasteCount: number;
-  blurCount: number;
+type AntiCheatEvent = {
+  event: string;
+  timestamp: string;
 };
 
 function formatTimeLeft(totalSeconds: number) {
@@ -76,9 +76,7 @@ function QuizTakePage() {
   const [attempt, setAttempt] = useState<Attempt | null>(null);
   const [activeQuestionId, setActiveQuestionId] = useState<number | null>(null);
   const [draftAnswers, setDraftAnswers] = useState<Record<number, string>>({});
-  const [activityCounts, setActivityCounts] = useState<
-    Record<number, ActivityCount>
-  >({});
+  const [eventList, setEventList] = useState<AntiCheatEvent[]>([]);
   const [result, setResult] = useState<AttemptResult | null>(null);
   const [isResultOpen, setIsResultOpen] = useState(false);
   const [nowUtcMs, setNowUtcMs] = useState(() => dayjs.utc().valueOf());
@@ -130,14 +128,12 @@ function QuizTakePage() {
     deadlineUtc !== null
       ? Math.max(0, Math.ceil(deadlineUtc.diff(nowUtc) / 1000))
       : null;
-  const totalPasteEvents = Object.values(activityCounts).reduce(
-    (total, counts) => total + counts.pasteCount,
-    0,
-  );
-  const totalBlurEvents = Object.values(activityCounts).reduce(
-    (total, counts) => total + counts.blurCount,
-    0,
-  );
+  const totalPasteEvents = eventList.filter(
+    (eventItem) => eventItem.event === "short-answer-paste",
+  ).length;
+  const totalBlurEvents = eventList.filter(
+    (eventItem) => eventItem.event === "window-blur",
+  ).length;
 
   useEffect(() => {
     startedAttemptQuizIdRef.current = null;
@@ -151,7 +147,7 @@ function QuizTakePage() {
     onSuccess: (nextAttempt) => {
       setAttempt(nextAttempt);
       setDraftAnswers(getAnswerMap(nextAttempt));
-      setActivityCounts({});
+      setEventList([]);
       setResult(null);
       setIsResultOpen(false);
       setIsTimeoutSubmitRetrying(false);
@@ -330,6 +326,18 @@ function QuizTakePage() {
     submitMutation,
   ]);
 
+  const logAntiCheatEvent = useCallback((event: string) => {
+    const timestamp = dayjs.utc().toISOString();
+
+    setEventList((currentEvents) => [
+      ...currentEvents,
+      {
+        event,
+        timestamp,
+      },
+    ]);
+  }, []);
+
   useEffect(() => {
     if (!attempt || isReadOnly || activeQuestionId === null) {
       return;
@@ -344,21 +352,7 @@ function QuizTakePage() {
 
       lastBlurEventAtRef.current = nowTimestamp;
 
-      setActivityCounts((currentCounts) => {
-        const currentQuestionCounts = currentCounts[activeQuestionId!] ?? {
-          pasteCount: 0,
-          blurCount: 0,
-        };
-
-        return {
-          ...currentCounts,
-          [activeQuestionId!]: {
-            ...currentQuestionCounts,
-            blurCount: currentQuestionCounts.blurCount + 1,
-          },
-        };
-      });
-
+      logAntiCheatEvent("window-blur");
       trackEventMutation.mutate({ event: "window-blur" });
     }
 
@@ -375,7 +369,7 @@ function QuizTakePage() {
       window.removeEventListener("blur", incrementBlurCount);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [activeQuestionId, attempt, isReadOnly, trackEventMutation]);
+  }, [activeQuestionId, attempt, isReadOnly, logAntiCheatEvent, trackEventMutation]);
 
   function handleRetryStart() {
     startedAttemptQuizIdRef.current = null;
@@ -409,21 +403,7 @@ function QuizTakePage() {
       return;
     }
 
-    setActivityCounts((currentCounts) => {
-      const currentQuestionCounts = currentCounts[currentQuestion.id] ?? {
-        pasteCount: 0,
-        blurCount: 0,
-      };
-
-      return {
-        ...currentCounts,
-        [currentQuestion.id]: {
-          ...currentQuestionCounts,
-          pasteCount: currentQuestionCounts.pasteCount + 1,
-        },
-      };
-    });
-
+    logAntiCheatEvent("short-answer-paste");
     if (attempt) {
       trackEventMutation.mutate({ event: "short-answer-paste" });
     }
