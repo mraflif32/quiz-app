@@ -70,10 +70,13 @@ The frontend expects the provided Node.js + SQLite backend to be running separat
 
 ## Trade-offs
 
-- The anti-cheat feature is intentionally lightweight and frontend-driven to keep the scope close to the take-home brief
-- The result modal shows compact anti-cheat totals for the whole quiz instead of a detailed audit view
-- Timeout submission failures auto-retry every 5 seconds, but manual submit failures stay interactive so users can retry themselves while time remains
-- The builder/player UI was kept compact and practical rather than adding extra product features beyond the brief
+- `Vite + React SPA` was chosen to keep the setup fast, simple, and close to the take-home scope. A Next.js-style setup would add routing and framework conventions that are not necessary for a local API-backed quiz tool, while Vite keeps iteration speed high and production output straightforward.
+- `TanStack Query v5` is the main server-state layer because the app is centered around fetch/mutate flows: loading quizzes, creating attempts, saving answers, and submitting results. This keeps request status, caching, and mutation handling consistent across builder and player screens without building custom request state by hand.
+- `React Hook Form + Zod` was chosen for forms because the builder has several structured inputs and validation rules. RHF keeps the forms performant and ergonomic, while Zod keeps validation rules explicit and colocated. The trade-off is a bit more setup compared with plain component state, but it scales better once the forms grow.
+- `Tailwind CSS + shadcn/ui` was selected to move quickly on a polished UI without locking the app into a heavy component framework. Tailwind gives direct control over layout and visual tuning, and shadcn primitives provide accessible building blocks. The trade-off is that styling remains code-driven rather than coming from a more opinionated design system.
+- `Day.js` is used for timestamp parsing and timer calculations so the app can consistently compute in UTC internally and convert to local time only when displaying values. This avoids scattered native `Date` logic and makes deadline handling easier to reason about.
+- The anti-cheat feature stays intentionally lightweight and frontend-driven to match the take-home brief. It records compact event data and summary totals rather than trying to be a full proctoring or forensic system.
+- The player and builder UIs are intentionally compact and task-focused. That keeps the app easier to scan and closer to the assignment, at the cost of fewer explanatory affordances and less onboarding copy in the interface.
 
 ## Anti-Cheat
 
